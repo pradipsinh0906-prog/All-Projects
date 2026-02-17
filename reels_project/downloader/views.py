@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 from django.http import FileResponse
 import instaloader, os, re
 from django.contrib import messages
+import shutil
 
 
 def login_view(request):
@@ -38,7 +39,6 @@ def register_view(request):
 
     return render(request, 'register.html')
 
-
 @login_required(login_url='login')
 def download_reel(request):
     if request.method == "POST":
@@ -50,6 +50,12 @@ def download_reel(request):
 
         shortcode = shortcode[0]
 
+        # ✅ DELETE OLD MEDIA FOLDER
+        if os.path.exists("media"):
+            shutil.rmtree("media")
+
+        os.mkdir("media")
+
         loader = instaloader.Instaloader(
             download_pictures=False,
             download_videos=True,
@@ -60,11 +66,16 @@ def download_reel(request):
         post = instaloader.Post.from_shortcode(loader.context, shortcode)
         loader.download_post(post, target="media")
 
+        # ✅ Return only newly downloaded file
         for file in os.listdir("media"):
             if file.endswith(".mp4"):
-                return FileResponse(open(f"media/{file}", "rb"), as_attachment=True)
+                return FileResponse(
+                    open(f"media/{file}", "rb"),
+                    as_attachment=True
+                )
 
     return render(request, "index.html")
+
 
 
 def logout_view(request):
