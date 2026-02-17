@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block title %}Downloader{% endblock %}
+
+{% block content %}
+
+<div class="text-end mb-2">
+    <a href="/logout/" class="btn btn-outline-danger btn-sm">Logout</a>
+</div>
+
+<h4 class="text-center mb-3">📥 Instagram Reels Downloader</h4>
+
+<form method="POST">
+    {% csrf_token %}
+
+    <input type="url" class="form-control mb-3"
+           name="url" placeholder="Paste Reel Link..." required>
+
+    <button class="btn btn-instagram w-100 py-2">
+        Download Reel
+    </button>
+</form>
+
+{% if error %}
+<div class="alert alert-danger mt-3">{{ error }}</div>
+{% endif %}
+
+{% endblock %}
