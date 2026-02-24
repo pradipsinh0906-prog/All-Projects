@@ -4,37 +4,44 @@
 
 {% block content %}
 
-<h4 class="text-center mb-4">📜 Download History</h4>
+<div class="container mt-4">
 
-<div class="row justify-content-center g-3">
+    <h4 class="text-center mb-4">📜 Download History</h4>
 
-    {% for item in history %}
-    <div class="col-6 col-md-4 col-lg-3">
+    <div class="row g-4">
 
-        {% if item.video_file %}
-        <div class="reel-box shadow-lg">
+        {% for item in history %}
+        <div class="col-6 col-md-4 col-lg-3">
 
-            <video class="reel-video" controls preload="metadata">
-                <source src="{{ item.video_file.url }}" type="video/mp4">
-            </video>
+            <div class="card-custom text-center p-2">
+
+                <video controls>
+                    <source src="{{ item.video_file.url }}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+
+                <small class="d-block mt-2 text-muted">
+                    {{ item.created_at|date:"d M Y" }}
+                </small>
+
+            </div>
 
         </div>
-        {% endif %}
+        {% empty %}
+        <div class="col-12 text-center mt-5">
+            <p class="text-muted">No reels downloaded yet.</p>
+        </div>
+        {% endfor %}
 
     </div>
-    {% empty %}
-    <div class="col-12">
-        <div class="alert alert-info text-center">
-            <h5>📭 No Reels Downloaded Yet</h5>
-            <p>Start downloading reels to see them here!</p>
-        </div>
+
+    <!-- Back Button -->
+    <div class="text-center mt-4">
+        <a href="{% url 'download' %}" class="btn btn-primary px-4">
+            ⬅ Back to Downloader
+        </a>
     </div>
-    {% endfor %}
 
 </div>
-
-<a href="/download/" class="btn btn-secondary w-100 mt-4">
-    Back to Downloader
-</a>
 
 {% endblock %}
