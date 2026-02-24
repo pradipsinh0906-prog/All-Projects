@@ -7,35 +7,73 @@ import instaloader, os, re
 from django.contrib import messages
 import shutil
 from downloader.models import DownloadHistory
+from .forms import RegisterForm
+from django.utils.safestring import mark_safe
+
+import re
+
+def is_strong_password(password):
+    if len(password) < 8:
+        return False
+    if not re.search("[A-Z]", password):
+        return False
+    if not re.search("[a-z]", password):
+        return False
+    if not re.search("[0-9]", password):
+        return False
+    if not re.search("[@#$%^&+=!]", password):
+        return False
+    return True
 
 
 def login_view(request):
+    
     if request.method == "POST":
-        username = request.POST['username']
-        password = request.POST['password']
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+
+        # Username check
+        if not User.objects.filter(username=username).exists():
+            messages.error(
+                request,
+                mark_safe('Account not found. <a href="/register/">Register Here</a>')
+            )
+            return render(request, 'login.html')
 
         user = authenticate(username=username, password=password)
 
-        if user:
-            login(request, user)
-            return redirect('download')
-        else:
-            messages.error(request, "Invalid username or password! Please register if you don't have an account.")
+        if user is None:
+            messages.error(request, "Invalid password!")
             return render(request, 'login.html')
+
+        login(request, user)
+        return redirect('download')
 
     return render(request, 'login.html')
 
-
 def register_view(request):
+    
     if request.method == "POST":
-        username = request.POST['username']
-        email = request.POST['email']
-        password = request.POST['password']
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        password1 = request.POST.get('password1')
+        password2 = request.POST.get('password2')
+
+        if password1 != password2:
+            messages.error(request, "Passwords do not match!")
+            return render(request, 'register.html')
+
+        if not is_strong_password(password1):
+            messages.error(request,
+                "Password must contain 8 characters, uppercase, lowercase, number and special character.")
+            return render(request, 'register.html')
 
         if User.objects.filter(username=username).exists():
-            return render(request, 'register.html', {'error': 'Username already exists'})
+            messages.error(request, "Username already exists!")
+            return render(request, 'register.html')
 
-        User.objects.create_user(username=username, email=email, password=password)
+        User.objects.create_user(username=username, email=email, password=password1)
+        messages.success(request, "Account created successfully!")
         return redirect('login')
 
     return render(request, 'register.html')

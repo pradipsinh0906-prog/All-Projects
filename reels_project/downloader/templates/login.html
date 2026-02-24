@@ -8,16 +8,11 @@
 
 {% if messages %}
     {% for message in messages %}
-        <div class="alert alert-danger">
-            {{ message }}
-            <br>
-            <a href="/register/" class="alert-link">
-                Register here
-            </a>
+        <div class="alert alert-danger mt-3 auto-hide">
+            {{ message|safe }}
         </div>
     {% endfor %}
 {% endif %}
-
 
 <form method="POST">
     {% csrf_token %}
@@ -33,5 +28,6 @@
     Don’t have an account?
     <a href="/register/">Register</a>
 </p>
-
 {% endblock %}
+
+

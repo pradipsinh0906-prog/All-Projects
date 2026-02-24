@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+    {% load static %}
 <head>
     <meta charset="UTF-8">
     <title>{% block title %}App{% endblock %}</title>
@@ -65,4 +66,5 @@
 </div>
 
 </body>
+<script src="{% static 'js/message.js' %}"></script>
 </html>
