@@ -1,44 +1,101 @@
 {% extends 'base.html' %}
-{% block title %}Register{% endblock %}
+
+{% block title %}Register - Reels Downloader{% endblock %}
 
 {% block content %}
 
-<h4 class="text-center mb-4">📝 Create Account</h4>
-
-<form method="POST">
-    {% csrf_token %}
-
-    <div class="mb-3">
-        <input type="text" name="username" class="form-control" placeholder="Username" required>
-    </div>
-
-    <div class="mb-3">
-        <input type="email" name="email" class="form-control" placeholder="Email" required>
-    </div>
-
-    <div class="mb-3">
-        <input type="password" name="password1" class="form-control" placeholder="Password" required>
-    </div>
-
-    <div class="mb-3">
-        <input type="password" name="password2" class="form-control" placeholder="Confirm Password" required>
-    </div>
-
-    <button type="submit" class="btn btn-success w-100">
-        Register
-    </button>
-</form>
-
-{% if messages %}
-    {% for message in messages %}
-        <div class="alert alert-danger mt-3 auto-hide">
-            {{ message|safe }}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5 col-sm-8">
+        <!-- Logo/Header -->
+        <div class="text-center mb-5">
+            <h2 class="mb-2">
+                <i class="bi bi-person-plus-fill" style="font-size: 2.5rem;"></i>
+            </h2>
+            <h3 class="fw-bold">Create Account</h3>
+            <p style="color: rgba(255, 255, 255, 0.8); font-size: 14px;">Join us to download reels</p>
         </div>
-    {% endfor %}
-{% endif %}
 
-<p class="text-center mt-3">
-    Already have account? <a href="{% url 'login' %}">Login</a>
-</p>
+        <!-- Register Card -->
+        <div class="card shadow-lg border-0">
+            <div class="card-body p-4">
+                <!-- Alert Messages -->
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-danger mb-4 auto-hide" role="alert">
+                            <i class="bi bi-exclamation-circle-fill me-2"></i>
+                            {{ message|safe }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <form method="POST">
+                    {% csrf_token %}
+
+                    <!-- Username Field -->
+                    <div class="mb-4">
+                        <label for="username" class="form-label text-dark fw-600 mb-2">
+                            <i class="bi bi-person-fill me-2"></i>Username
+                        </label>
+                        <input type="text" id="username" name="username" class="form-control form-control-lg" 
+                               placeholder="Choose a username" required>
+                    </div>
+
+                    <!-- Email Field -->
+                    <div class="mb-4">
+                        <label for="email" class="form-label text-dark fw-600 mb-2">
+                            <i class="bi bi-envelope-fill me-2"></i>Email Address
+                        </label>
+                        <input type="email" id="email" name="email" class="form-control form-control-lg" 
+                               placeholder="Enter your email" required>
+                    </div>
+
+                    <!-- Password Field -->
+                    <div class="mb-4">
+                        <label for="password1" class="form-label text-dark fw-600 mb-2">
+                            <i class="bi bi-key-fill me-2"></i>Password
+                        </label>
+                        <input type="password" id="password1" name="password1" class="form-control form-control-lg" 
+                               placeholder="Create a password" required>
+                    </div>
+
+                    <!-- Confirm Password Field -->
+                    <div class="mb-4">
+                        <label for="password2" class="form-label text-dark fw-600 mb-2">
+                            <i class="bi bi-key-fill me-2"></i>Confirm Password
+                        </label>
+                        <input type="password" id="password2" name="password2" class="form-control form-control-lg" 
+                               placeholder="Confirm your password" required>
+                    </div>
+
+                    <!-- Register Button -->
+                    <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold mb-3">
+                        <i class="bi bi-person-check-fill me-2"></i>Create Account
+                    </button>
+                </form>
+
+                <!-- Divider -->
+                <div class="d-flex align-items-center my-4">
+                    <div style="flex: 1; height: 1px; background: rgba(0,0,0,0.1);"></div>
+                    <span style="padding: 0 10px; color: #666; font-size: 13px;">OR</span>
+                    <div style="flex: 1; height: 1px; background: rgba(0,0,0,0.1);"></div>
+                </div>
+
+                <!-- Login Link -->
+                <p class="text-center text-dark fw-500 mb-0">
+                    Already have an account?
+                    <a href="{% url 'login' %}" class="text-primary fw-bold">
+                        Sign in now
+                        <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
+                </p>
+            </div>
+        </div>
+
+        <!-- Footer Note -->
+        <p class="text-center mt-4" style="color: rgba(255, 255, 255, 0.7); font-size: 12px;">
+            <i class="bi bi-shield-lock me-1"></i>Your data is secure and encrypted
+        </p>
+    </div>
+</div>
 
 {% endblock %}

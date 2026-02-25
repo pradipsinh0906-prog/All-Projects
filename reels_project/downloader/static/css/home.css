@@ -1,0 +1,21 @@
+/* Home Page Specific Styles */
+
+.feature-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.feature-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15) !important;
+}
+
+.input-group-lg .form-control,
+.input-group-lg .input-group-text {
+    height: auto;
+    padding: 12px 16px;
+}
+
+.btn-outline-light:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: white;
+}
