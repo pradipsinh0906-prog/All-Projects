@@ -1,13 +1,21 @@
 <nav class="navbar navbar-dark bg-dark px-3">
-    <a class="navbar-brand fw-bold" href="/download/">🎬 Reels Downloader</a>
+    <div class="d-flex align-items-center gap-2 text-white fw-semibold">
+        <i class="bi bi-person-circle fs-4"></i>
+        <span>{{ request.user.username|capfirst }}</span>
+    </div>
 
-    <div class="d-flex">
-        <a href="/history/" class="btn btn-outline-light me-2">
-            Download History
-        </a>
-
-        <a href="/logout/" class="btn btn-outline-danger">
-            Logout
-        </a>
+    <div class="d-flex align-items-center gap-3">
+        {% if request.resolver_match.url_name == 'history' %}
+            <a href="{% url 'download' %}" class="btn btn-light btn-sm d-flex align-items-center gap-1 shadow-sm px-3">
+                <i class="bi bi-arrow-left"></i> Back
+            </a>
+        {% else %}
+            <a href="{% url 'history' %}" class="btn btn-outline-light btn-sm">
+                Download History
+            </a>
+            <a href="{% url 'logout' %}" class="btn btn-outline-danger btn-sm">
+                Logout
+            </a>
+        {% endif %}
     </div>
 </nav>
