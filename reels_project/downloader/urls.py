@@ -8,5 +8,6 @@ urlpatterns = [
     path('download/', download_reel, name='download'),
     path('history/', download_history, name='history'),
     path('delete/<int:id>/', delete_reel, name='delete_reel'),
+    path('delete-reel/<int:id>/', delete_reel, name='delete_reel_alt'),
     path('logout/', logout_view, name='logout'),
 ]
