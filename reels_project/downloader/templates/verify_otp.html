@@ -1,0 +1,30 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Verify OTP</title>
+    <link rel="stylesheet" href="{% static 'css/verify_otp.css' %}">
+</head>
+<body>
+
+    <div class="otp-card">
+        <h2>Verify Your Email</h2>
+        <p>Enter the 6-digit OTP sent to your email</p>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="message">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="POST">
+            {% csrf_token %}
+            <input type="text" name="otp" class="otp-input" placeholder="Enter OTP" maxlength="6" required>
+            <button type="submit" class="btn-verify">VERIFY</button>
+        </form>
+    </div>
+
+</body>
+</html>

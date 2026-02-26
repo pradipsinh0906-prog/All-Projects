@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
@@ -9,8 +10,20 @@ import shutil
 from downloader.models import DownloadHistory
 from .forms import RegisterForm
 from django.utils.safestring import mark_safe
-
+import random
+from django.core.mail import send_mail
+from django.shortcuts import render, redirect
+from django.contrib.auth.models import User
+from django.contrib import messages
+from django.conf import settings
+from .models import EmailOTP
 import re
+from django.shortcuts import render, redirect
+from django.contrib.auth.models import User
+from django.contrib import messages
+from django.utils import timezone
+from datetime import timedelta
+from .models import EmailOTP
 
 def is_strong_password(password):
     if len(password) < 8:
@@ -40,43 +53,105 @@ def login_view(request):
             )
             return render(request, 'login.html')
 
-        user = authenticate(username=username, password=password)
+        user = authenticate(request, username=username, password=password)
 
-        if user is None:
-            messages.error(request, "Invalid password!")
-            return render(request, 'login.html')
-
-        login(request, user)
-        return redirect('download')
+        if user is not None:
+                login(request, user)
+                return redirect('download')
+        else:
+                messages.error(request, "Invalid username or password")
 
     return render(request, 'login.html')
 
+
 def register_view(request):
-    
     if request.method == "POST":
         username = request.POST.get('username')
         email = request.POST.get('email')
         password1 = request.POST.get('password1')
         password2 = request.POST.get('password2')
 
+        # Password match check
         if password1 != password2:
             messages.error(request, "Passwords do not match!")
-            return render(request, 'register.html')
+            return redirect('register')
 
-        if not is_strong_password(password1):
-            messages.error(request,
-                "Password must contain 8 characters, uppercase, lowercase, number and special character.")
-            return render(request, 'register.html')
-
+        # ✅ CHECK USERNAME
         if User.objects.filter(username=username).exists():
             messages.error(request, "Username already exists!")
-            return render(request, 'register.html')
+            return redirect('register')
 
-        User.objects.create_user(username=username, email=email, password=password1)
-        messages.success(request, "Account created successfully!")
-        return redirect('login')
+        # ✅ CHECK EMAIL
+        if User.objects.filter(email=email).exists():
+            messages.error(request, "Email already registered!")
+            return redirect('register')
+
+        # ✅ CREATE USER (inactive for OTP)
+        user = User.objects.create_user(
+            username=username,
+            email=email,
+            password=password1
+        )
+        user.is_active = True
+        user.save()
+        
+         # 🔥 STEP 3 ADD AHI KARVU 👇👇👇
+
+        # Generate OTP
+        otp = str(random.randint(100000, 999999))
+
+        # Save OTP in DB
+        EmailOTP.objects.create(user=user, otp=otp)
+
+        # Send Mail
+        send_mail(
+            'Your OTP Code',
+            f'Your OTP is {otp}',
+            settings.EMAIL_HOST_USER,
+            [email],
+            fail_silently=False,
+        )
+
+        # Save user id in session
+        request.session['user_id'] = user.id
+
+        messages.success(request, "User Created Successfully!")
+        return redirect('verify_otp')
 
     return render(request, 'register.html')
+    
+def verify_otp(request):
+    if request.method == "POST":
+        entered_otp = request.POST.get('otp')
+        user_id = request.session.get('user_id')
+
+        if not user_id:
+            return redirect('register')
+
+        try:
+            user = User.objects.get(id=user_id)
+            otp_obj = EmailOTP.objects.get(user=user)
+        except:
+            messages.error(request, "Something went wrong.")
+            return redirect('register')
+
+        # OTP expire after 5 minutes
+        if timezone.now() > otp_obj.created_at + timedelta(minutes=5):
+            otp_obj.delete()
+            messages.error(request, "OTP Expired. Register again.")
+            return redirect('register')
+
+        if otp_obj.otp == entered_otp:
+            user.is_active = True
+            user.save()
+            otp_obj.delete()
+            messages.success(request, "Account Verified Successfully!")
+            return redirect('login')
+        else:
+            messages.error(request, "Invalid OTP")
+
+    return render(request, 'verify_otp.html')
+    
 
 @login_required(login_url='login')
 def download_reel(request):
