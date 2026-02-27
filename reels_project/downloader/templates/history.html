@@ -65,8 +65,8 @@
                         </button>
                     </div>
                     <!-- Overlay Actions -->
-                    <div class="video-overlay position-absolute top-0 start-0 w-100 h-100 d-flex align-items-end justify-content-center pb-3" style="pointer-events: none;">
-                        <div class="btn-group" role="group" style="pointer-events: all;">
+                    <div class="video-overlay position-absolute top-0 start-0 w-100 h-100 d-flex align-items-end justify-content-center pb-3">
+                        <div class="btn-group" role="group">
                             <a href="{{ item.video_file.url }}" download class="btn btn-sm btn-instagram" title="Download">
                                 <i class="bi bi-download"></i>
                             </a>
@@ -74,6 +74,11 @@
                                 <i class="bi bi-trash"></i>
                             </button>
                         </div>
+                    </div>
+
+                    <!-- Playing Badge -->
+                    <div class="playing-badge position-absolute top-0 end-0 m-2" style="display: none; background: rgba(255,0,0,0.9); padding: 6px 12px; border-radius: 20px; font-size: 12px; color: white; font-weight: bold; z-index: 25;">
+                        <i class="bi bi-play-circle-fill me-1"></i>PLAYING
                     </div>
                 </div>
 

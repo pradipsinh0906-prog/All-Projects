@@ -31,13 +31,12 @@
                             <i class="bi bi-clock-history"></i>
                             <span>History</span>
                         </a>
+                        <!-- Logout Button - Only on Download Page -->
+                        <a href="{% url 'logout' %}" class="nav-btn nav-btn-danger">
+                            <i class="bi bi-box-arrow-right"></i>
+                            <span>Logout</span>
+                        </a>
                     {% endif %}
-
-                    <!-- Logout Button -->
-                    <a href="{% url 'logout' %}" class="nav-btn nav-btn-danger">
-                        <i class="bi bi-box-arrow-right"></i>
-                        <span>Logout</span>
-                    </a>
                 </div>
             </div>
         </div>

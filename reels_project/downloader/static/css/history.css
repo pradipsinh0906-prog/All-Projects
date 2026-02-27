@@ -10,13 +10,23 @@
 }
 
 .video-overlay {
+    /* overlay must sit above play button so clicks reach the action buttons */
+    z-index: 20;
     background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.7));
     opacity: 0;
     transition: opacity 0.3s ease;
+    pointer-events: auto; /* allow buttons to receive events */
 }
 
-.video-card:hover .video-overlay {
+/* show overlay when card is hovered or video is playing */
+.video-card:hover .video-overlay,
+.video-card.playing .video-overlay {
     opacity: 1;
+}
+
+/* button group sits above overlay just in case */
+.video-overlay .btn-group {
+    z-index: 21;
 }
 
 .btn-group .btn {
@@ -29,6 +39,7 @@
     justify-content: center;
     margin: 0 4px;
     transition: all 0.3s ease;
+    pointer-events: auto; /* buttons always clickable */
 }
 
 .btn-group .btn:hover {

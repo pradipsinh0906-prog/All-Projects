@@ -15,6 +15,10 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             e.stopPropagation();
             if (video.paused) {
+                // pause all other videos before playing this one
+                document.querySelectorAll('.video-player').forEach(v => {
+                    if (v !== video) v.pause();
+                });
                 video.play();
             }
         });
@@ -22,6 +26,10 @@ document.addEventListener('DOMContentLoaded', function() {
         // Pause/Play when clicking on video itself
         video.addEventListener('click', function(e) {
             if (video.paused) {
+                // pause all other videos before playing this one
+                document.querySelectorAll('.video-player').forEach(v => {
+                    if (v !== video) v.pause();
+                });
                 video.play();
             } else {
                 video.pause();
@@ -38,12 +46,23 @@ document.addEventListener('DOMContentLoaded', function() {
         video.addEventListener('play', function() {
             playButtonOverlay.style.opacity = '0';
             playButtonOverlay.style.pointerEvents = 'none';
+            /* mark card as playing so overlay stays visible */
+            const card = video.closest('.video-card');
+            card?.classList.add('playing');
+            /* show the playing badge */
+            const badge = card?.querySelector('.playing-badge');
+            if (badge) badge.style.display = 'inline-block';
         }, false);
         
         // Show play button when video pauses
         video.addEventListener('pause', function() {
             playButtonOverlay.style.opacity = '1';
             playButtonOverlay.style.pointerEvents = 'auto';
+            const card = video.closest('.video-card');
+            card?.classList.remove('playing');
+            /* hide the playing badge */
+            const badge = card?.querySelector('.playing-badge');
+            if (badge) badge.style.display = 'none';
         }, false);
         
         // Show play button when video ends
@@ -51,7 +70,30 @@ document.addEventListener('DOMContentLoaded', function() {
             video.currentTime = 0;
             playButtonOverlay.style.opacity = '1';
             playButtonOverlay.style.pointerEvents = 'auto';
+            const card = video.closest('.video-card');
+            card?.classList.remove('playing');
+            /* hide the playing badge */
+            const badge = card?.querySelector('.playing-badge');
+            if (badge) badge.style.display = 'none';
         }, false);
+
+        // clicking on the dark overlay area toggles play/pause
+        const videoOverlay = video.closest('.position-relative').querySelector('.video-overlay');
+        if (videoOverlay) {
+            videoOverlay.addEventListener('click', function(e) {
+                /* don't pause/play if user clicked on buttons */
+                if (e.target.closest('.btn-group')) return;
+                if (video.paused) {
+                    // pause all other videos before playing this one
+                    document.querySelectorAll('.video-player').forEach(v => {
+                        if (v !== video) v.pause();
+                    });
+                    video.play();
+                } else {
+                    video.pause();
+                }
+            });
+        }
     });
 });
 
