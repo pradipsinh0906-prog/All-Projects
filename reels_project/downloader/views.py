@@ -12,18 +12,12 @@ from .forms import RegisterForm
 from django.utils.safestring import mark_safe
 import random
 from django.core.mail import send_mail
-from django.shortcuts import render, redirect
-from django.contrib.auth.models import User
-from django.contrib import messages
 from django.conf import settings
 from .models import EmailOTP
 import re
-from django.shortcuts import render, redirect
-from django.contrib.auth.models import User
-from django.contrib import messages
 from django.utils import timezone
 from datetime import timedelta
-from .models import EmailOTP
+import requests as req_lib
 
 def is_strong_password(password):
     if len(password) < 8:
@@ -151,7 +145,6 @@ def verify_otp(request):
             messages.error(request, "Invalid OTP")
 
     return render(request, 'verify_otp.html')
-    
 
 @login_required(login_url='login')
 def download_reel(request):
@@ -159,56 +152,46 @@ def download_reel(request):
         url = request.POST.get("url")
 
         try:
+            # RapidAPI call
+            api_url = "https://instagram-reels-downloader-api.p.rapidapi.com/download"
+            
+            headers = {
+                "Content-Type": "application/json",
+                "x-rapidapi-host": "instagram-reels-downloader-api.p.rapidapi.com",
+                "x-rapidapi-key": os.environ.get('RAPIDAPI_KEY')
+            }
+            
+            response = req_lib.get(api_url, headers=headers, params={"url": url})
+            data = response.json()
+
+            # Video URL extract karo
+            video_url = None
+            if isinstance(data, list) and len(data) > 0:
+                video_url = data[0].get('url')
+            elif isinstance(data, dict):
+                video_url = data.get('url') or data.get('video_url') or data.get('download_url')
+
+            if not video_url:
+                return render(request, "home.html", {"error": "Video URL not found in API response"})
+
+            # Video download karo
+            video_response = req_lib.get(video_url, stream=True)
+            
+            # Media folder ma save karo
             shortcode = re.findall(r"/reel/([^/?]+)", url)
-            if not shortcode:
-                return render(request, "home.html", {"error": "Invalid Reel URL"})
-
-            shortcode = shortcode[0]
-
-            # Create temp directory for download
-            temp_dir = "temp_download"
-            if os.path.exists(temp_dir):
-                shutil.rmtree(temp_dir)
-            os.mkdir(temp_dir)
-
-            loader = instaloader.Instaloader(
-                download_pictures=False,
-                download_videos=True,
-                save_metadata=False,
-                post_metadata_txt_pattern=""
-            )
-
-            post = instaloader.Post.from_shortcode(loader.context, shortcode)
-            loader.download_post(post, target=temp_dir)
-
-            # Find the downloaded video file
-            video_file_path = None
-            for root, dirs, files in os.walk(temp_dir):
-                for file in files:
-                    if file.endswith(".mp4"):
-                        video_file_path = os.path.join(root, file)
-                        break
-                if video_file_path:
-                    break
-
-            if not video_file_path:
-                shutil.rmtree(temp_dir)
-                return render(request, "home.html", {"error": "Failed to download video"})
-
-            # Create media/reels directory if it doesn't exist
+            shortcode = shortcode[0] if shortcode else "reel"
+            
             media_reels_dir = os.path.join("media", "reels")
-            if not os.path.exists(media_reels_dir):
-                os.makedirs(media_reels_dir)
-
-            # Copy file to media/reels folder with shortcode as filename
+            os.makedirs(media_reels_dir, exist_ok=True)
+            
             final_filename = f"{shortcode}.mp4"
             final_path = os.path.join(media_reels_dir, final_filename)
-            shutil.copy(video_file_path, final_path)
+            
+            with open(final_path, 'wb') as f:
+                for chunk in video_response.iter_content(chunk_size=8192):
+                    f.write(chunk)
 
-            # Clean up temp directory
-            shutil.rmtree(temp_dir)
-
-            # ✅ SAVE HISTORY
+            # History save karo
             DownloadHistory.objects.create(
                 user=request.user,
                 reel_url=url,
@@ -221,7 +204,6 @@ def download_reel(request):
             return render(request, "home.html", {"error": f"Error: {str(e)}"})
 
     return render(request, "home.html")
-
 
 def logout_view(request):
     logout(request)
