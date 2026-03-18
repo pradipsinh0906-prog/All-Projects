@@ -65,22 +65,18 @@ def register_view(request):
         password1 = request.POST.get('password1')
         password2 = request.POST.get('password2')
 
-        # Password match check
         if password1 != password2:
             messages.error(request, "Passwords do not match!")
             return redirect('register')
 
-        # ✅ CHECK USERNAME
         if User.objects.filter(username=username).exists():
             messages.error(request, "Username already exists!")
             return redirect('register')
 
-        # ✅ CHECK EMAIL
         if User.objects.filter(email=email).exists():
             messages.error(request, "Email already registered!")
             return redirect('register')
 
-        # ✅ CREATE USER (inactive for OTP)
         user = User.objects.create_user(
             username=username,
             email=email,
@@ -88,32 +84,37 @@ def register_view(request):
         )
         user.is_active = True
         user.save()
-        
-         # 🔥 STEP 3 ADD AHI KARVU 👇👇👇
 
         # Generate OTP
         otp = str(random.randint(100000, 999999))
 
         # Save OTP in DB
-        EmailOTP.objects.create(user=user, otp=otp)
+        EmailOTP.objects.update_or_create(user=user, defaults={'otp': otp})
 
-        # Send Mail
-        send_mail(
-            'Your OTP Code',
-            f'Your OTP is {otp}',
-            settings.EMAIL_HOST_USER,
-            [email],
-            fail_silently=False,
-        )
+        # ✅ Threading thi email moko — server crash nai thase
+        def send_otp_email():
+            try:
+                send_mail(
+                    'Your OTP Code',
+                    f'Your OTP is {otp}',
+                    settings.EMAIL_HOST_USER,
+                    [email],
+                    fail_silently=True,
+                )
+            except:
+                pass
 
-        # Save user id in session
+        import threading
+        thread = threading.Thread(target=send_otp_email)
+        thread.daemon = True
+        thread.start()
+
         request.session['user_id'] = user.id
-
-        messages.success(request, "User Created Successfully!")
+        messages.success(request, "OTP sent to your email!")
         return redirect('verify_otp')
 
     return render(request, 'register.html')
-    
+
 def verify_otp(request):
     if request.method == "POST":
         entered_otp = request.POST.get('otp')
@@ -152,30 +153,44 @@ def download_reel(request):
         url = request.POST.get("url")
 
         try:
+            # Check API key
+            api_key = os.environ.get('RAPIDAPI_KEY')
+            if not api_key:
+                return render(request, "home.html", {"error": "API key not configured"})
+            
             # RapidAPI call
             api_url = "https://instagram-reels-downloader-api.p.rapidapi.com/download"
             
             headers = {
                 "Content-Type": "application/json",
                 "x-rapidapi-host": "instagram-reels-downloader-api.p.rapidapi.com",
-                "x-rapidapi-key": os.environ.get('RAPIDAPI_KEY')
+                "x-rapidapi-key": api_key
             }
             
-            response = req_lib.get(api_url, headers=headers, params={"url": url})
+            response = req_lib.get(api_url, headers=headers, params={"url": url}, timeout=10)
+            
+            # Check response status
+            if response.status_code != 200:
+                return render(request, "home.html", {"error": f"API Error: {response.status_code}"})
+            
             data = response.json()
 
             # Video URL extract karo
             video_url = None
-            if isinstance(data, list) and len(data) > 0:
-                video_url = data[0].get('url')
-            elif isinstance(data, dict):
-                video_url = data.get('url') or data.get('video_url') or data.get('download_url')
+            if data.get('success') and data.get('data'):
+                medias = data['data'].get('medias', [])
+                for media in medias:
+                    if media.get('type') == 'video' and not media.get('is_audio'):
+                        video_url = media.get('url')
+                        break
+                if not video_url and medias:
+                    video_url = medias[0].get('url')
 
             if not video_url:
                 return render(request, "home.html", {"error": "Video URL not found in API response"})
 
             # Video download karo
-            video_response = req_lib.get(video_url, stream=True)
+            video_response = req_lib.get(video_url, stream=True, timeout=30)
             
             # Media folder ma save karo
             shortcode = re.findall(r"/reel/([^/?]+)", url)
@@ -198,8 +213,15 @@ def download_reel(request):
                 video_file=os.path.join("reels", final_filename)
             )
 
-            return FileResponse(open(final_path, "rb"), as_attachment=True, filename=final_filename)
+            # Properly handle file response
+            file_obj = open(final_path, "rb")
+            response = FileResponse(file_obj, as_attachment=True, filename=final_filename)
+            return response
 
+        except req_lib.exceptions.Timeout:
+            return render(request, "home.html", {"error": "Request timeout. Try again."})
+        except req_lib.exceptions.RequestException as e:
+            return render(request, "home.html", {"error": f"Network error: {str(e)}"})
         except Exception as e:
             return render(request, "home.html", {"error": f"Error: {str(e)}"})
 
