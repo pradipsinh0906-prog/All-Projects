@@ -1,5 +1,5 @@
 from django.contrib import admin
-from downloader.models import DownloadHistory
+from downloader.models import DownloadHistory, EmailOTP
 import os
 from django.conf import settings
 
@@ -22,4 +22,11 @@ class DownloadHistoryAdmin(admin.ModelAdmin):
             if os.path.exists(file_path):
                 os.remove(file_path)
         super().delete_model(request, obj)
+        
+@admin.register(EmailOTP)
+class EmailOTPAdmin(admin.ModelAdmin):
+    list_display = ('user', 'otp', 'created_at')  # 'email' → 'user', 'otp_code' → 'otp'
+    list_filter = ('created_at',)
+    search_fields = ('user__username', 'user__email')  # 'email' → 'user__username'
+    readonly_fields = ('created_at',)
 
