@@ -133,11 +133,10 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-
+EMAIL_PORT = 465          # 587 → 465 change karo
+EMAIL_USE_TLS = False     # False karo
+EMAIL_USE_SSL = True      # aa add karo
 EMAIL_HOST_USER = 'instadownloader14@gmail.com'
-EMAIL_HOST_PASSWORD = 'prljdbxnibxdnmjz'
+EMAIL_HOST_PASSWORD = 'prljdbxnibxdnmjz' 
