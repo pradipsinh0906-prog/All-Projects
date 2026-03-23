@@ -18,6 +18,11 @@ import re
 from django.utils import timezone
 from datetime import timedelta
 import requests as req_lib
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.template.loader import render_to_string
+import threading
 
 def is_strong_password(password):
     if len(password) < 8:
@@ -95,14 +100,14 @@ def register_view(request):
         def send_otp_email():
             try:
                 send_mail(
-                    'Your OTP Code',
-                    f'Your OTP is {otp}',
+                    'Your OTP Code - Reels Downloader',
+                    f'Your OTP verification code is: {otp}\n\nThis code will expire in 5 minutes.\n\nIf you did not request this, please ignore this email.',
                     settings.EMAIL_HOST_USER,
                     [email],
-                    fail_silently=True,
+                    fail_silently=False,
                 )
-            except:
-                pass
+            except Exception as e:
+                print(f"Error sending OTP email to {email}: {str(e)}")
 
         import threading
         thread = threading.Thread(target=send_otp_email)
@@ -110,7 +115,7 @@ def register_view(request):
         thread.start()
 
         request.session['user_id'] = user.id
-        messages.success(request, "OTP sent to your email!")
+        messages.success(request, "OTP sent to your email! Check inbox and spam folder.")
         return redirect('verify_otp')
 
     return render(request, 'register.html')
@@ -153,77 +158,73 @@ def download_reel(request):
         url = request.POST.get("url")
 
         try:
-            # Check API key
-            api_key = os.environ.get('RAPIDAPI_KEY')
-            if not api_key:
-                return render(request, "home.html", {"error": "API key not configured"})
+            # Extract shortcode from URL
+            shortcode = re.findall(r"/reel/([^/?]+)|/p/([^/?]+)", url)
+            if not shortcode:
+                return render(request, "home.html", {"error": "❌ Invalid Instagram URL. Please use a reel or post URL."})
             
-            # RapidAPI call
-            api_url = "https://instagram-reels-downloader-api.p.rapidapi.com/download"
+            shortcode = shortcode[0][0] or shortcode[0][1]
             
-            headers = {
-                "Content-Type": "application/json",
-                "x-rapidapi-host": "instagram-reels-downloader-api.p.rapidapi.com",
-                "x-rapidapi-key": api_key
-            }
+            # Create instaloader instance
+            loader = instaloader.Instaloader()
             
-            response = req_lib.get(api_url, headers=headers, params={"url": url}, timeout=10)
-            
-            # Check response status
-            if response.status_code != 200:
-                return render(request, "home.html", {"error": f"API Error: {response.status_code}"})
-            
-            data = response.json()
-
-            # Video URL extract karo
-            video_url = None
-            if data.get('success') and data.get('data'):
-                medias = data['data'].get('medias', [])
-                for media in medias:
-                    if media.get('type') == 'video' and not media.get('is_audio'):
-                        video_url = media.get('url')
-                        break
-                if not video_url and medias:
-                    video_url = medias[0].get('url')
-
-            if not video_url:
-                return render(request, "home.html", {"error": "Video URL not found in API response"})
-
-            # Video download karo
-            video_response = req_lib.get(video_url, stream=True, timeout=30)
-            
-            # Media folder ma save karo
-            shortcode = re.findall(r"/reel/([^/?]+)", url)
-            shortcode = shortcode[0] if shortcode else "reel"
-            
+            # Create media folder
             media_reels_dir = os.path.join("media", "reels")
             os.makedirs(media_reels_dir, exist_ok=True)
+            
+            # Download post
+            post = instaloader.Post.from_shortcode(loader.context, shortcode)
+            
+            # Get video URL
+            video_url = post.video_url if post.is_video else None
+            
+            if not video_url:
+                return render(request, "home.html", {"error": "❌ This post doesn't contain a video."})
+            
+            # Download video
+            video_response = req_lib.get(video_url, stream=True, timeout=30)
             
             final_filename = f"{shortcode}.mp4"
             final_path = os.path.join(media_reels_dir, final_filename)
             
             with open(final_path, 'wb') as f:
                 for chunk in video_response.iter_content(chunk_size=8192):
-                    f.write(chunk)
-
-            # History save karo
+                    if chunk:
+                        f.write(chunk)
+            
+            # Save to history
             DownloadHistory.objects.create(
                 user=request.user,
                 reel_url=url,
                 video_file=os.path.join("reels", final_filename)
             )
-
-            # Properly handle file response
-            file_obj = open(final_path, "rb")
-            response = FileResponse(file_obj, as_attachment=True, filename=final_filename)
+            
+            # Return file using proper HttpResponse to avoid caching issues
+            with open(final_path, 'rb') as f:
+                file_content = f.read()
+            
+            # Use octet-stream to force download instead of opening
+            response = FileResponse(
+                file_content,
+                as_attachment=True,
+                filename=final_filename,
+                content_type='application/octet-stream'
+            )
+            # Force download with additional headers
+            response['Content-Disposition'] = f'attachment; filename="{final_filename}"'
+            response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+            response['Pragma'] = 'no-cache'
+            response['Expires'] = '0'
             return response
 
+        except instaloader.exceptions.InstaloaderException as e:
+            return render(request, "home.html", {"error": f"❌ Instagram Error: {str(e)}"})
         except req_lib.exceptions.Timeout:
-            return render(request, "home.html", {"error": "Request timeout. Try again."})
+            return render(request, "home.html", {"error": "⏱️ Request timeout. Try again."})
         except req_lib.exceptions.RequestException as e:
-            return render(request, "home.html", {"error": f"Network error: {str(e)}"})
+            return render(request, "home.html", {"error": f"🌐 Network error: {str(e)}"})
         except Exception as e:
-            return render(request, "home.html", {"error": f"Error: {str(e)}"})
+            return render(request, "home.html", {"error": f"❌ Error: {str(e)}"})
 
     return render(request, "home.html")
 
@@ -258,3 +259,73 @@ def delete_reel(request, id):
         messages.error(request, "Reel not found!")
     
     return redirect('history')
+
+
+def forgot_password_view(request):
+    """Custom password reset view with better error handling"""
+    if request.method == "POST":
+        email = request.POST.get('email', '').strip().lower()
+        
+        if not email:
+            messages.error(request, "Please enter an email address.")
+            return render(request, 'forgot_password.html')
+        
+        # Check if user with this email exists (case-insensitive)
+        try:
+            user = User.objects.get(email__iexact=email)
+        except User.DoesNotExist:
+            # Show feedback - email not registered
+            messages.warning(request, f"No account found with email: {email}. Please check and try again or register a new account.")
+            return render(request, 'forgot_password.html')
+        
+        # Generate token
+        token = default_token_generator.make_token(user)
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        
+        # Build reset URL
+        from django.urls import reverse
+        reset_url = request.build_absolute_uri(reverse('password_reset_confirm', kwargs={'uidb64': uid, 'token': token}))
+        
+        # Prepare email content
+        email_subject = "Password Reset Request - Reels Downloader"
+        email_body = f"""Hello {user.username},
+
+You requested a password reset for your Reels Downloader account.
+
+Click the link below to set a new password:
+
+{reset_url}
+
+If you did not request this password reset, please ignore this email or let us know immediately.
+
+This link will expire in 1 hour.
+
+Note: Do not reply to this email. This is an automated message.
+
+---
+Reels Downloader
+"""
+        
+        # Send email in background thread
+        def send_reset_email():
+            try:
+                send_mail(
+                    email_subject,
+                    email_body,
+                    settings.EMAIL_HOST_USER,
+                    [user.email],
+                    fail_silently=False,
+                )
+                print(f"✅ Password reset email sent to {user.email}")
+            except Exception as e:
+                print(f"❌ Error sending password reset email to {user.email}: {str(e)}")
+        
+        thread = threading.Thread(target=send_reset_email)
+        thread.daemon = True
+        thread.start()
+        
+        # Show success message
+        messages.success(request, f"✅ Password reset link has been sent to {user.email}. Please check your inbox (and spam folder).")
+        return redirect('password_reset_done')
+    
+    return render(request, 'forgot_password.html')

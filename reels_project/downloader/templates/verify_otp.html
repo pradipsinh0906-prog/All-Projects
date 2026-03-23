@@ -1,30 +1,61 @@
+{% extends 'base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Verify OTP</title>
-    <link rel="stylesheet" href="{% static 'css/verify_otp.css' %}">
-</head>
-<body>
 
-    <div class="otp-card">
-        <h2>Verify Your Email</h2>
-        <p>Enter the 6-digit OTP sent to your email</p>
+{% block title %}Verify OTP - Reels Downloader{% endblock %}
 
+{% block extra_styles %}
+<link rel="stylesheet" href="{% static 'css/verify_otp.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5 col-sm-8">
+        <!-- Header -->
+        <div class="text-center mb-5">
+            <h2 class="mb-2">
+                <i class="bi bi-shield-check" style="font-size: 2.5rem; color: #0d6efd;"></i>
+            </h2>
+            <h3 class="fw-bold">Verify Your Email</h3>
+            <p style="color: rgba(255, 255, 255, 0.8); font-size: 14px;">Enter the 6-digit OTP we sent to your email</p>
+        </div>
+
+        <!-- Alert Messages -->
         {% if messages %}
             {% for message in messages %}
-                <div class="message">
-                    {{ message }}
+                <div class="alert alert-{% if message.tags %}{{ message.tags }}{% else %}danger{% endif %} mt-3 auto-hide" role="alert">
+                    <i class="bi bi-exclamation-circle-fill me-2"></i>
+                    {{ message|safe }}
                 </div>
             {% endfor %}
         {% endif %}
 
-        <form method="POST">
-            {% csrf_token %}
-            <input type="text" name="otp" class="otp-input" placeholder="Enter OTP" maxlength="6" required>
-            <button type="submit" class="btn-verify">VERIFY</button>
-        </form>
-    </div>
+        <!-- OTP Card -->
+        <div class="card shadow-lg border-0">
+            <div class="card-body p-4">
+                <form method="POST">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">OTP Code</label>
+                        <input type="text" name="otp" class="form-control text-center" placeholder="000000" maxlength="6" required 
+                               style="font-size: 24px; font-weight: bold; letter-spacing: 10px;">
+                        <small class="text-muted d-block mt-2">Didn't receive the OTP? Check your spam folder.</small>
+                    </div>
 
-</body>
-</html>
+                    <button type="submit" class="btn btn-primary w-100 fw-bold" style="padding: 10px;">
+                        <i class="bi bi-check-circle me-2"></i>Verify OTP
+                    </button>
+                </form>
+
+                <div class="text-center mt-4">
+                    <p style="color: rgba(255, 255, 255, 0.7); font-size: 14px;">
+                        <a href="{% url 'register' %}" style="color: #0d6efd; text-decoration: none;">Back to Registration</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

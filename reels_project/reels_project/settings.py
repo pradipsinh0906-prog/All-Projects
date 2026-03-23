@@ -13,10 +13,10 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 from pathlib import Path
 import os
 import dj_database_url
-# from dotenv import load_dotenv #(local system ma .env file thi environment variables load karva mate) 
+from dotenv import load_dotenv
 
 # Load environment variables from .env file
-# load_dotenv(os.path.join(Path(__file__).resolve().parent.parent, '.env'))
+load_dotenv(os.path.join(Path(__file__).resolve().parent.parent, '.env'))
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -148,8 +148,10 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 465          # 587 → 465 change karo
-EMAIL_USE_TLS = False     # False karo
-EMAIL_USE_SSL = True      # aa add karo
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_USE_SSL = False
 EMAIL_HOST_USER = 'instadownloader14@gmail.com'
-EMAIL_HOST_PASSWORD = 'prljdbxnibxdnmjz' 
+EMAIL_HOST_PASSWORD = 'prljdbxnibxdnmjz'
+DEFAULT_FROM_EMAIL = 'instadownloader14@gmail.com'
+SERVER_EMAIL = 'instadownloader14@gmail.com' 
